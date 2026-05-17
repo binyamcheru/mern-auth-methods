@@ -9,16 +9,18 @@ const {
 exports.register = async (req, res) => {
   try {
     const { name, email, password, confirmPassword } = req.body;
-    // NOTE: role is intentionally NOT destructured from req.body
-    // Only admins should be able to assign roles (via a separate admin route)
+    
+    // Sanitization: Trim whitespace from name and email
+    const cleanName = name ? name.trim() : name;
+    const cleanEmail = email ? email.toLowerCase().trim() : email;
 
     // Collect all validation errors so the frontend can show them all at once
     const errors = {};
 
-    const nameError = validateName(name);
+    const nameError = validateName(cleanName);
     if (nameError) errors.name = nameError;
 
-    const emailError = validateEmail(email);
+    const emailError = validateEmail(cleanEmail);
     if (emailError) errors.email = emailError;
 
     const passwordError = validatePassword(password);
@@ -36,7 +38,7 @@ exports.register = async (req, res) => {
     }
 
     // Check for duplicate email
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: cleanEmail });
     if (existingUser) {
       return res
         .status(409)
@@ -44,11 +46,20 @@ exports.register = async (req, res) => {
     }
 
     // Role is always "user" for public registration
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ name: cleanName, email: cleanEmail, password });
+
+    // AUTO-LOGIN: Store user info in session immediately after registration
+    req.session.userId = user._id;
+    req.session.user = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
 
     res.status(201).json({
-      message: "Registered successfully",
-      user,
+      message: "Registered successfully and logged in",
+      user: req.session.user,
     });
   } catch (err) {
     res
@@ -59,12 +70,14 @@ exports.register = async (req, res) => {
 
 // LOGIN user
 exports.login = async (req, res) => {
-
   try {
     const { email, password } = req.body;
 
+    // Sanitization: Trim email
+    const cleanEmail = email ? email.toLowerCase().trim() : email;
+
     const errors = {};
-    const emailError = validateEmail(email);
+    const emailError = validateEmail(cleanEmail);
     if (emailError) errors.email = emailError;
 
     if (!password) {

@@ -32,6 +32,7 @@ exports.validateEmail = (email) => {
  */
 exports.validatePassword = (password) => {
   if (!password || typeof password !== "string") return "Password is required";
+  // We do NOT trim passwords (spaces at start/end can be part of a legitimate password)
   if (password.length < 8) return "Password must be at least 8 characters";
   if (password.length > 128) return "Password must be at most 128 characters";
   if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter";

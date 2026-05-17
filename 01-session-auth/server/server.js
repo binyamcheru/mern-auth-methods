@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
+const cookieParser = require("cookie-parser"); // NEW: For CSRF and cookie handling
+const { doubleCsrf } = require("csrf-csrf"); // NEW: For CSRF protection
+const rateLimit = require("express-rate-limit"); // NEW: For brute-force protection
 const { MongoStore } = require("connect-mongo");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
@@ -16,15 +19,30 @@ connectDB();
 
 const app = express();
 
-// CORS middleware to allow requests from the frontend
+// 1. Trust proxy (needed for rate limiting if behind a proxy like Heroku/Nginx)
+app.set("trust proxy", 1);
+
+// 2. Cookie Parser
+app.use(cookieParser(process.env.SESSION_SECRET || "your-secret-key"));
+
+// 3. CORS middleware
 app.use(
   cors({
-    origin: "http://localhost:3000", // allow requests from this origin
-    credentials: true, // allow cookies to be sent
+    origin: "http://localhost:3000",
+    credentials: true,
   }),
 );
 
-// Session middleware
+// 4. Rate Limiter for Auth Routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later" },
+});
+
+// 5. Session middleware
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "your-secret-key",
@@ -42,27 +60,48 @@ app.use(
   }),
 );
 
-// middleware to change req.body to a json object
-app.use(express.json());
+// 6. CSRF Configuration
+const {
+  doubleCsrfProtection,
+  generateToken,
+} = doubleCsrf({
+  getSecret: () => process.env.SESSION_SECRET || "your-secret-key",
+  cookieName: "x-csrf-token",
+  cookieOptions: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false, // set to true in production
+  },
+  getTokenFromRequest: (req) => req.headers["x-csrf-token"], // where the frontend will send it
+});
 
-// middleware to change req.body to a urlencoded object
+// Export CSRF tools for the auth routes
+app.set("csrfGenerateToken", generateToken);
+
+// 7. Standard Body Parsers
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// use auth routes
-app.use("/api/auth", authRoutes);
+// 8. CSRF Protection Middleware
+// We apply it globally, but you could also apply it per-route
+app.use((req, res, next) => {
+  // Skip CSRF check for GET, HEAD, OPTIONS
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    return next();
+  }
+  doubleCsrfProtection(req, res, next);
+});
 
-// use user routes
+// Apply rate limiter specifically to auth routes
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/user", userRoutes);
-
-// use admin routes
 app.use("/api/admin", adminRoutes);
 
-// route to test if server is working
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-// Centralized error handler (must be after all routes)
+// Centralized error handler
 app.use(errorHandler);
 
 app.listen(PORT, () => {

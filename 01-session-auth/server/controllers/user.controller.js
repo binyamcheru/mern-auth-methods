@@ -27,13 +27,16 @@ exports.updateProfile = async (req, res) => {
   try {
     const { name, email } = req.body;
 
+    const cleanName = name ? name.trim() : name;
+    const cleanEmail = email ? email.toLowerCase().trim() : email;
+
     const errors = {};
     if (name) {
-      const nameError = validateName(name);
+      const nameError = validateName(cleanName);
       if (nameError) errors.name = nameError;
     }
     if (email) {
-      const emailError = validateEmail(email);
+      const emailError = validateEmail(cleanEmail);
       if (emailError) errors.email = emailError;
     }
 
@@ -49,7 +52,7 @@ exports.updateProfile = async (req, res) => {
 
     // If email is being updated, check for duplicates
     if (email) {
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ email: cleanEmail });
       if (existingUser && existingUser._id.toString() !== req.session.userId) {
         return res
           .status(409)
@@ -58,8 +61,8 @@ exports.updateProfile = async (req, res) => {
     }
 
     const updateData = {};
-    if (name) updateData.name = name;
-    if (email) updateData.email = email;
+    if (name) updateData.name = cleanName;
+    if (email) updateData.email = cleanEmail;
 
     const user = await User.findByIdAndUpdate(req.session.userId, updateData, {
       new: true, // return the updated document
