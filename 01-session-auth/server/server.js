@@ -65,7 +65,7 @@ app.use(
 // 6. CSRF Configuration
 const {
   doubleCsrfProtection,
-  generateToken,
+  generateCsrfToken,
 } = doubleCsrf({
   getSecret: () => process.env.SESSION_SECRET || "your-secret-key",
   cookieName: "x-csrf-token",
@@ -78,7 +78,7 @@ const {
 });
 
 // Export CSRF tools for the auth routes
-app.set("csrfGenerateToken", generateToken);
+app.set("csrfGenerateToken", generateCsrfToken);
 
 // 7. Standard Body Parsers
 app.use(express.json());

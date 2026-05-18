@@ -67,8 +67,8 @@ router.post('/login', authController.login);
  *         description: Returns a CSRF token
  */
 router.get('/csrf-token', (req, res) => {
-  const generateToken = req.app.get('csrfGenerateToken');
-  res.json({ csrfToken: generateToken(req, res) });
+  const generateCsrfToken = req.app.get('csrfGenerateToken');
+  res.json({ csrfToken: generateCsrfToken(req, res) });
 });
 
 /**
