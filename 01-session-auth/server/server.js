@@ -1,4 +1,5 @@
 const express = require("express");
+const helmet = require("helmet");
 const cors = require("cors");
 const session = require("express-session");
 const cookieParser = require("cookie-parser"); // NEW: For CSRF and cookie handling
@@ -20,6 +21,7 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 const app = express();
+app.use(helmet());
 
 
 // 1. Trust proxy (needed for rate limiting if behind a proxy like Heroku/Nginx)
