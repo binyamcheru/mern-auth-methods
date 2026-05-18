@@ -70,12 +70,12 @@ const {
   getSecret: () => process.env.SESSION_SECRET || "your-secret-key",
   cookieName: "x-csrf-token",
   cookieOptions: {
-    httpOnly: true,
+    httpOnly: false, // Must be false so frontend JS can read it for double-submit
     sameSite: "lax",
-    secure: false, // set to true in production
+    secure: false, 
   },
-  getSessionIdentifier: (req) => req.session?.id, // NEW: Bind token to session
-  getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"], // CORRECT NAME
+  getSessionIdentifier: (req) => req.session?.id || "uninitialized",
+  getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"],
 });
 
 // Export CSRF tools for the auth routes
@@ -86,9 +86,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 8. CSRF Protection Middleware
-// We apply it globally, but you could also apply it per-route
 app.use((req, res, next) => {
-  // Skip CSRF check for GET, HEAD, OPTIONS
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     return next();
   }
