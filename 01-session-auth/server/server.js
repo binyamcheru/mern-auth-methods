@@ -74,7 +74,8 @@ const {
     sameSite: "lax",
     secure: false, // set to true in production
   },
-  getTokenFromRequest: (req) => req.headers["x-csrf-token"], // where the frontend will send it
+  getSessionIdentifier: (req) => req.session?.id, // NEW: Bind token to session
+  getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"], // CORRECT NAME
 });
 
 // Export CSRF tools for the auth routes
