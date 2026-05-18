@@ -21,6 +21,7 @@ connectDB();
 
 const app = express();
 
+
 // 1. Trust proxy (needed for rate limiting if behind a proxy like Heroku/Nginx)
 app.set("trust proxy", 1);
 
@@ -79,9 +80,7 @@ const {
     return req.session?.id || "uninitialized";
   },
   getCsrfTokenFromRequest: (req) => {
-    // Debug: See what token the client is sending
     const token = req.headers["x-csrf-token"];
-    console.log(`[CSRF Debug] Header Token: ${token}`);
     return token;
   },
 });
@@ -100,7 +99,6 @@ app.use((req, res, next) => {
     return next();
   }
 
-  console.log(`[CSRF Debug] Validating ${req.method} ${req.path}`);
   doubleCsrfProtection(req, res, next);
 });
 
@@ -113,7 +111,12 @@ app.use("/api/admin", adminRoutes);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.json({
+    status: "healthy",
+    message: "Welcome to the Secure MERN Session-Auth API",
+    version: "1.0.0",
+    docs: "/api-docs",
+  });
 });
 
 // Centralized error handler
