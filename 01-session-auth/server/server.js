@@ -10,6 +10,8 @@ const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const adminRoutes = require("./routes/admin.routes");
 const errorHandler = require("./middleware/errorHandler");
+const swaggerUi = require("swagger-ui-express"); // NEW
+const swaggerSpec = require("./config/swagger"); // NEW
 require("dotenv").config();
 
 const PORT = process.env.PORT || 5000;
@@ -96,6 +98,9 @@ app.use((req, res, next) => {
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
+
+// Swagger Documentation Route
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
