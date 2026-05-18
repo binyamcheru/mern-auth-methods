@@ -49,7 +49,7 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET || "your-secret-key",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URI,
     }),
@@ -70,12 +70,20 @@ const {
   getSecret: () => process.env.SESSION_SECRET || "your-secret-key",
   cookieName: "x-csrf-token",
   cookieOptions: {
-    httpOnly: false, // Must be false so frontend JS can read it for double-submit
+    httpOnly: false, // CRITICAL: Must be false so frontend JS can read it for double-submit
     sameSite: "lax",
-    secure: false, 
+    secure: false,
   },
-  getSessionIdentifier: (req) => req.session?.id || "uninitialized",
-  getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"],
+  // CSRF needs a way to identify the user session to bind the token
+  getSessionIdentifier: (req) => {
+    return req.session?.id || "uninitialized";
+  },
+  getCsrfTokenFromRequest: (req) => {
+    // Debug: See what token the client is sending
+    const token = req.headers["x-csrf-token"];
+    console.log(`[CSRF Debug] Header Token: ${token}`);
+    return token;
+  },
 });
 
 // Export CSRF tools for the auth routes
@@ -87,9 +95,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // 8. CSRF Protection Middleware
 app.use((req, res, next) => {
+  // Skip CSRF check for GET, HEAD, OPTIONS
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     return next();
   }
+
+  console.log(`[CSRF Debug] Validating ${req.method} ${req.path}`);
   doubleCsrfProtection(req, res, next);
 });
 
