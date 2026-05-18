@@ -6,7 +6,7 @@ const {
 } = require("../utils/validators");
 
 // GET user profile — returns the logged-in user's data
-exports.profile = async (req, res) => {
+exports.profile = async (req, res, next) => {
   try {
     const user = await User.findById(req.session.userId);
 
@@ -16,14 +16,12 @@ exports.profile = async (req, res) => {
 
     res.status(200).json({ user });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to fetch profile", error: err.message });
+    next(err);
   }
 };
 
 // UPDATE user profile — update name and/or email
-exports.updateProfile = async (req, res) => {
+exports.updateProfile = async (req, res, next) => {
   try {
     const { name, email } = req.body;
 
@@ -83,14 +81,12 @@ exports.updateProfile = async (req, res) => {
 
     res.status(200).json({ message: "Profile updated successfully", user });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to update profile", error: err.message });
+    next(err);
   }
 };
 
 // CHANGE PASSWORD — verify current password, then set new one
-exports.changePassword = async (req, res) => {
+exports.changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
 
@@ -128,14 +124,12 @@ exports.changePassword = async (req, res) => {
 
     res.status(200).json({ message: "Password changed successfully" });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to change password", error: err.message });
+    next(err);
   }
 };
 
 // DELETE ACCOUNT — verify password, then delete user and session
-exports.deleteAccount = async (req, res) => {
+exports.deleteAccount = async (req, res, next) => {
   try {
     const { password } = req.body;
 
@@ -163,16 +157,12 @@ exports.deleteAccount = async (req, res) => {
     // Destroy session after deleting account
     req.session.destroy((err) => {
       if (err) {
-        return res
-          .status(500)
-          .json({ message: "Account deleted but session cleanup failed" });
+        return next(err);
       }
       res.clearCookie("connect.sid");
       res.status(200).json({ message: "Account deleted successfully" });
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to delete account", error: err.message });
+    next(err);
   }
 };

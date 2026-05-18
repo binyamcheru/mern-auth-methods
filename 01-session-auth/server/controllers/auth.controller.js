@@ -6,7 +6,7 @@ const {
 } = require("../utils/validators");
 
 // REGISTER user
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
   try {
     const { name, email, password, confirmPassword } = req.body;
     
@@ -62,14 +62,12 @@ exports.register = async (req, res) => {
       user: req.session.user,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Registration failed", error: err.message });
+    next(err); // Delegate to centralized error handler
   }
 };
 
 // LOGIN user
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -89,7 +87,7 @@ exports.login = async (req, res) => {
     }
 
     // Find user and include password field (normally excluded)
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email: cleanEmail }).select("+password");
 
     if (!user) {
       return res.status(401).json({
@@ -122,29 +120,27 @@ exports.login = async (req, res) => {
       user: req.session.user,
     });
   } catch (err) {
-    res.status(500).json({ message: "Login failed", error: err.message });
+    next(err); // Delegate to centralized error handler
   }
 };
 
 // LOGOUT user
-exports.logout = async (req, res) => {
+exports.logout = async (req, res, next) => {
   try {
     req.session.destroy((err) => {
       if (err) {
-        return res
-          .status(500)
-          .json({ message: "Logout failed", error: err.message });
+        return next(err); // Delegate to centralized error handler
       }
       res.clearCookie("connect.sid");
       res.status(200).json({ message: "Logout successful" });
     });
   } catch (err) {
-    res.status(500).json({ message: "Logout failed", error: err.message });
+    next(err); // Delegate to centralized error handler
   }
 };
 
 // CHECK SESSION — returns current user if logged in
-exports.checkSession = async (req, res) => {
+exports.checkSession = async (req, res, next) => {
   try {
     const user = await User.findById(req.session.userId);
 
@@ -154,8 +150,6 @@ exports.checkSession = async (req, res) => {
 
     res.status(200).json({ user });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Session check failed", error: err.message });
+    next(err); // Delegate to centralized error handler
   }
 };

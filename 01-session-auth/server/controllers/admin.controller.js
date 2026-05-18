@@ -1,7 +1,7 @@
 const User = require("../models/User");
 
 // GET ALL USERS — paginated list
-exports.getAllUsers = async (req, res) => {
+exports.getAllUsers = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -19,14 +19,12 @@ exports.getAllUsers = async (req, res) => {
       },
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to fetch users", error: err.message });
+    next(err);
   }
 };
 
 // GET USER BY ID
-exports.getUserById = async (req, res) => {
+exports.getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
 
@@ -36,14 +34,12 @@ exports.getUserById = async (req, res) => {
 
     res.status(200).json({ user });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to fetch user", error: err.message });
+    next(err);
   }
 };
 
 // UPDATE USER ROLE
-exports.updateUserRole = async (req, res) => {
+exports.updateUserRole = async (req, res, next) => {
   try {
     const { role } = req.body;
 
@@ -72,14 +68,12 @@ exports.updateUserRole = async (req, res) => {
 
     res.status(200).json({ message: "User role updated successfully", user });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to update user role", error: err.message });
+    next(err);
   }
 };
 
 // DELETE USER
-exports.deleteUser = async (req, res) => {
+exports.deleteUser = async (req, res, next) => {
   try {
     // Prevent admin from deleting themselves
     if (req.params.id === req.session.userId) {
@@ -96,8 +90,6 @@ exports.deleteUser = async (req, res) => {
 
     res.status(200).json({ message: "User deleted successfully" });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to delete user", error: err.message });
+    next(err);
   }
 };
