@@ -96,6 +96,11 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    // check account is active
+    if (!user.isActive) {
+      return res.status(401).json({ message: 'Account is disabled' })
+    }
+
     // Compare passwords
     const isPasswordCorrect = await user.comparePassword(password);
 
