@@ -12,4 +12,9 @@ router.post("/logout", optionalAuth, authController.logout)
 
 router.get("/me", requireAuth, authController.checkSession)
 
+router.get("/csrf-token", (req, res) => {
+    const generateCsrfToken = req.app.get("csrfGenerateToken");
+    res.status(200).json({ csrfToken: generateCsrfToken(req, res) });
+});
+
 module.exports = router;
